@@ -1,0 +1,55 @@
+package com.infoworld;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.List;
+
+import org.twitter4j.Twitter;
+import org.twitter4j.TwitterException;
+import org.twitter4j.TwitterFactory;
+import org.twitter4j.Status;
+
+import io.reactivex.Observable;
+import io.reactivex.Observer;
+import io.reactivex.disposables.Disposable;
+
+public class TwitterRx {
+
+  public static void main(String[] args) throws TwitterException, IOException {
+    // Create a Twitter object
+    Twitter twitter = new TwitterFactory().getInstance();
+
+    // Create an Observable that emits the next 500 tweets
+    Observable<Status> tweets = Observable.create(emitter -> {
+      for (int i = 0; i < 500; i++) {
+        try {
+          Status status = twitter.getHomeTimeline().get(i);
+          emitter.onNext(status);
+        } catch (TwitterException e) {
+          emitter.onError(e);
+        }
+      }
+      emitter.onComplete();
+    });
+
+    // Subscribe to the Observable and print the tweets to the console
+    tweets.subscribe(status -> {
+      System.out.println(status.getText());
+    });
+
+    // Filter the tweets that contain the word "tech" and write them to a file
+    tweets.filter(status -> status.getText().contains("tech"))
+      .subscribe(status -> {
+        try {
+          File file = new File("techlog.txt");
+          FileWriter writer = new FileWriter(file);
+          writer.write(status.getText());
+          writer.close();
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      });
+  }
+}
+
